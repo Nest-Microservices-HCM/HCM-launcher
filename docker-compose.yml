@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+
+  nats-server:
+    image: nats:latest
+    ports:
+      - "8222:8222"
+    
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    volumes:
+      - ./api-gateway/src:/usr/src/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3000
+      - NATS_SERVERS=nats://nats-server:4222
+    restart: unless-stopped
+
+  authentication-ms:
+    build: ./authentication-ms
+    volumes:
+      - ./authentication-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    depends_on:
+      authentication-db:
+        condition: service_healthy
+    environment:
+      - PORT=3001
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=postgresql://postgres:123456@authentication-db:5432/authentication_db?schema=public
+    restart: unless-stopped
+  
+  authentication-db:
+    container_name: authentication-db
+    image: postgres:16.2
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=authentication_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./authentication-ms/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d authentication_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
