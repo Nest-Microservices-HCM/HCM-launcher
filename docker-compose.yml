@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services:
 
@@ -8,21 +8,27 @@ services:
       - "8222:8222"
     
   api-gateway:
-    build: ./api-gateway
+    build: 
+      context: ./api-gateway
+      dockerfile: Dockerfile
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
-    volumes:
-      - ./api-gateway/src:/usr/src/app/src
     command: npm run start:dev
+    working_dir: /usr/src/app
     environment:
       - PORT=3000
       - NATS_SERVERS=nats://nats-server:4222
-    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./api-gateway
+          target: /usr/src/app
 
   authentication-ms:
-    build: ./authentication-ms
-    volumes:
-      - ./authentication-ms/src:/usr/src/app/src
+    build: 
+      context: ./authentication-ms
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
     command: npm run start:dev
     depends_on:
       authentication-db:
@@ -31,8 +37,12 @@ services:
       - PORT=3001
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=postgresql://postgres:123456@authentication-db:5432/authentication_db?schema=public
-    restart: unless-stopped
-  
+    develop:
+      watch:
+        - action: sync
+          path: ./authentication-ms
+          target: /usr/src/app
+          
   authentication-db:
     container_name: authentication-db
     image: postgres:16.2
