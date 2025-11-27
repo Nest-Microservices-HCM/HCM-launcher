@@ -4,3 +4,6 @@
 [submodule "authentication-ms"]
 	path = authentication-ms
 	url = https://github.com/Nest-Microservices-HCM/authentication-repo.git
+[submodule "company-ms"]
+	path = company-ms
+	url = https://github.com/Nest-Microservices-HCM/company-ms-repo.git
