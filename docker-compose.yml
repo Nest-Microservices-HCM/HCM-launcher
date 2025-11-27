@@ -23,6 +23,7 @@ services:
           path: ./api-gateway
           target: /usr/src/app
 
+# * MICROSERVICIOS
   authentication-ms:
     build: 
       context: ./authentication-ms
@@ -42,7 +43,27 @@ services:
         - action: sync
           path: ./authentication-ms
           target: /usr/src/app
+  
+  company-ms:
+    build: 
+      context: ./company-ms
+      dockerfile: Dockerfile
+    working_dir: /usr/src/app
+    command: npm run start:dev
+    depends_on:
+      company-db:
+        condition: service_healthy
+    environment:
+      - PORT=3002
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=mysql://root:123456@company-db:3306/company_db
+    develop:
+      watch:
+        - action: sync
+          path: ./company-ms
+          target: /usr/src/app
 
+# * BASES DE DATOS
   authentication-db:
     container_name: authentication-db
     image: mysql:8.0
@@ -54,6 +75,29 @@ services:
       - "3306:3306"
     volumes:
       - ./authentication-ms/mysql:/var/lib/mysql
+    command: 
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb_buffer_pool_size=256M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+  
+  company-db:
+    container_name: company-db
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=company_db
+    ports:
+      - "3308:3306"  # Puerto diferente
+    volumes:
+      - ./company-ms/mysql:/var/lib/mysql
     command: 
       - --default-authentication-plugin=mysql_native_password
       - --character-set-server=utf8mb4
