@@ -62,6 +62,25 @@ services:
         - action: sync
           path: ./company-ms
           target: /usr/src/app
+  
+  employee-ms:
+    build: 
+      context: ./employee-ms
+      dockerfile: Dockerfile  
+    working_dir: /usr/src/app
+    command: npm run start:dev
+    depends_on:
+      employee-db:
+        condition: service_healthy
+    environment:
+      - PORT=3003
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=mysql://root:123456@employee-db:3306/employee_db
+    develop:
+      watch:
+        - action: sync
+          path: ./employee-ms
+          target: /usr/src/app
 
 # * BASES DE DATOS
   authentication-db:
@@ -95,9 +114,32 @@ services:
       - MYSQL_ROOT_PASSWORD=123456
       - MYSQL_DATABASE=company_db
     ports:
-      - "3308:3306"  # Puerto diferente
+      - "3308:3306" 
     volumes:
       - ./company-ms/mysql:/var/lib/mysql
+    command: 
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb_buffer_pool_size=256M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+
+  employee-db:
+    container_name: employee-db
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=employee_db
+    ports:
+      - "3309:3306" 
+    volumes:
+      - ./employee-ms/mysql:/var/lib/mysql
     command: 
       - --default-authentication-plugin=mysql_native_password
       - --character-set-server=utf8mb4
