@@ -3,6 +3,8 @@ services:
 
   nats-server:
     image: nats:latest
+    networks:
+      - hcm-network
     ports:
       - "8222:8222"
     
@@ -17,6 +19,8 @@ services:
     environment:
       - PORT=3000
       - NATS_SERVERS=nats://nats-server:4222
+    networks:
+      - hcm-network
     develop:
       watch:
         - action: sync
@@ -38,6 +42,8 @@ services:
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=mysql://root:123456@authentication-db:3306/authentication_db
       - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - hcm-network
     develop:
       watch:
         - action: sync
@@ -57,6 +63,8 @@ services:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=mysql://root:123456@company-db:3306/company_db
+    networks:
+      - hcm-network
     develop:
       watch:
         - action: sync
@@ -76,6 +84,8 @@ services:
       - PORT=3003
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=mysql://root:123456@employee-db:3306/employee_db
+    networks:
+      - hcm-network
     develop:
       watch:
         - action: sync
@@ -99,6 +109,8 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --innodb_buffer_pool_size=256M
+    networks:
+      - hcm-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
       interval: 10s
@@ -122,6 +134,8 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --innodb_buffer_pool_size=256M
+    networks:
+      - hcm-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
       interval: 10s
@@ -145,9 +159,15 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --innodb_buffer_pool_size=256M
+    networks:
+      - hcm-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
       interval: 10s
       timeout: 10s
       retries: 15
       start_period: 60s
+
+networks:
+  hcm-network:
+    external: true
